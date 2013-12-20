@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Elviz</title>
+<link rel="stylesheet" href="elviz.css">
+</head>
+<body>
+  <h1>Elviz</h1>
+
+  <p>Type in lyrics, with inner-word syllables separated with a *.
+    Then select a music file, and click `tap cues`.</p>
+
+  <div id="stage1">
+    <div class="sample_container high400">
+      <textarea placeholder="Lyrics go here!" id="lyricsInputBox"></textarea>
+    </div>
+    <div class="sample_container">
+      <input type="File" id="fileUploader" />
+    </div>
+
+    <div class="sample_container centerText">
+      <a href="#" id="tapCuesLink" onclick="return false;">Tap Cues</a>
+    </div>
+  </div>
+  <div id="stage2">
+    <div class="sample_container high400">
+      <p>Click the button whenever the highlighted syllable starts. Click once to begin (and give focus for spacebar-ing ;).</p>
+      <ul id="lyricsList">
+      <li>Placeholder</li>
+      <li>Items</li>
+      <li>Go</li>
+      <li>Here</li>
+      <li>this is a great use of the first-child selector BTW</li>
+      </ul>
+      <a href="#">Syllable.</a>
+    </div>
+  </div>
+
+  <script type="application/dart" src="elviz.dart"></script>
+  <script src="packages/browser/dart.js"></script>
+</body>
+</html>
