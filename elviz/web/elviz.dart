@@ -21,5 +21,14 @@ void tapCues(MouseEvent event) {
   tokens = txta.value.split(new RegExp(r"[\t\n *]"));
   
   //Generate the HTML for the thing...
+  Element ll = querySelector("#lyricsList");
+  ll.children = [];
   
+  tokens.forEach(addToTheLyricsList);
+  
+}
+
+void addToTheLyricsList(var token) {
+  Element ll = querySelector("#lyricsList");
+  ll.children.add(new LIElement()..text = token);
 }
