@@ -33,7 +33,6 @@ h1, p {
   margin-top: 1em;
 }
 
-
 #lyricsList {
   list-style:none;
 }
@@ -45,10 +44,7 @@ h1, p {
 #lyricsList li {
   color: gray;
   display: inline;
-}
-
-#lyricsList li:before {
-  content: ' | ';
+  padding-right: 1.5em;
 }
 
 #fileUploader {
