@@ -6,38 +6,42 @@
 <link rel="stylesheet" href="elviz.css">
 </head>
 <body>
-  <h1>Elviz</h1>
+    <h1>Elviz</h1>
+    <p>The lyric visualizer.</p>
 
-  <p>Type in lyrics, with inner-word syllables separated with a *.
-    Then select a music file, and click `tap cues`.</p>
+    <div id="stage1">
+        <div class="sample_container high400">
+            <textarea placeholder="It's too late to change events // It's time to face the con*se*quence" id="lyricsInputBox"></textarea>
+        </div>
+        <div class="sample_container">
+            <div id="fileDrop"
+                style="border: 2px dashed gray; border-radius: 6px; text-align: center; padding: 3em; color: gray; font-weight: bold;">
+                Drag the song file here.<br />(.mp3, .m4a, .flac, .ogg)
+            </div>
+        </div>
 
-  <div id="stage1">
-    <div class="sample_container high400">
-      <textarea placeholder="Lyrics go here!" id="lyricsInputBox"></textarea>
+        <div class="sample_container centerText">
+            <a href="#" id="tapCuesLink" onclick="return false;">Tap Cues</a>
+        </div>
     </div>
-    <div class="sample_container">
-      <input type="File" id="fileUploader" />
+    <div id="stage2" style="display: none;">
+        <div class="sample_container high400 centerText">
+            <p>
+                Click the button whenever the highlighted syllable starts. Click
+                once to begin (and give focus for spacebar-ing ;).
+            </p>
+            <input type="button" id="syllableButton" value="Syllable." />
+            <ul id="lyricsList">
+                <li>Placeholder</li>
+                <li>Items</li>
+                <li>Go</li>
+                <li>Here</li>
+                <li>this is a great use of the first-child selector BTW</li>
+            </ul>
+        </div>
     </div>
 
-    <div class="sample_container centerText">
-      <a href="#" id="tapCuesLink" onclick="return false;">Tap Cues</a>
-    </div>
-  </div>
-  <div id="stage2">
-    <div class="sample_container high400 centerText">
-      <p>Click the button whenever the highlighted syllable starts. Click once to begin (and give focus for spacebar-ing ;).</p>
-      <ul id="lyricsList">
-      <li>Placeholder</li>
-      <li>Items</li>
-      <li>Go</li>
-      <li>Here</li>
-      <li>this is a great use of the first-child selector BTW</li>
-      </ul>
-      <input type="button" value="Syllable." />
-    </div>
-  </div>
-
-  <script type="application/dart" src="elviz.dart"></script>
-  <script src="packages/browser/dart.js"></script>
+    <script type="application/dart" src="elviz.dart"></script>
+    <script src="packages/browser/dart.js"></script>
 </body>
 </html>
