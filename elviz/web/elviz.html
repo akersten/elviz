@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>Elviz</title>
+
+<script type="application/dart" src="elviz.dart"></script>
+<script src="packages/browser/dart.js"></script>
+
 <link rel="stylesheet" href="elviz.css">
+
 </head>
 <body>
     <h1>Elviz</h1>
@@ -11,7 +16,9 @@
 
     <div id="stage1">
         <div class="sample_container high400">
-            <textarea placeholder="It's too late to change events // It's time to face the con*se*quence" id="lyricsInputBox"></textarea>
+            <textarea
+                placeholder="All I ever wan*ted // All I ever need*ed"
+                id="lyricsInputBox"></textarea>
         </div>
         <div class="sample_container">
             <div id="fileDrop"
@@ -26,10 +33,10 @@
     </div>
     <div id="stage2" style="display: none;">
         <div class="sample_container high400 centerText">
-            <p>
-                Click the button whenever the highlighted syllable starts. Click
-                once to begin (and give focus for spacebar-ing ;).
-            </p>
+            <p id="cuetimer">0</p>
+            <p>Click the button whenever the highlighted syllable
+                starts. Click once to begin (and give focus for
+                spacebar-ing ;).</p>
             <input type="button" id="syllableButton" value="Syllable." />
             <ul id="lyricsList">
                 <li>Placeholder</li>
@@ -41,7 +48,5 @@
         </div>
     </div>
 
-    <script type="application/dart" src="elviz.dart"></script>
-    <script src="packages/browser/dart.js"></script>
 </body>
 </html>

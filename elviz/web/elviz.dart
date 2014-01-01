@@ -1,4 +1,5 @@
 import 'dart:html';
+import 'dart:async';
 
 //XXX: State for certain actions - right now things will break if the syllable
 //button action is triggered before things are actually set up (CSS will prevent
@@ -8,7 +9,7 @@ import 'dart:html';
 /**
  * Set up actions for page elements.
  */
-void main() {
+void main() { 
   querySelector("#tapCuesLink")
     ..onClick.listen(tapCues);
   querySelector("#syllableButton")
@@ -71,13 +72,23 @@ void tapCues(MouseEvent event) {
     tmpi++;
   }
   
+  tokens.add("~fin~"); //Need a final token which isn't multi-syllable.
   tokens.forEach(addToTheLyricsList);
-  
+
   //Switch over to the second stage interface...
   querySelector("#stage1").style.display = "none";
   querySelector("#stage2").style.display = "block";
 }
 
+
+
+Stopwatch stopwatch = new Stopwatch();
+Timer domUpdateTimer;
+
+Element durationElement = querySelector('#cuetimer');
+void doDomUpdate(Timer useless) {
+  durationElement.innerHtml = "${stopwatch.elapsedMilliseconds}";
+}
 
 var syllableClickIdx = -1;
 var syllableClickIdx2 = 0;
@@ -92,5 +103,18 @@ void syllableClick(MouseEvent event) {
   
   //On the first click, start the timer.
   if (syllableClickIdx == -1) {
+    stopwatch.start();
+    domUpdateTimer = new Timer.periodic(const Duration(milliseconds: 150),
+                                          doDomUpdate);
+    syllableClickIdx = 0;
+    return;
   }
+  
+  //Stop the timer after the last syllable happens.
+  if (syllableClickIdx == tokens.length - 1) {
+    stopwatch.stop();
+    return;
+  }
+  
+  
 }
