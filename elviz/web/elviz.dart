@@ -164,6 +164,10 @@ void syllableClick(MouseEvent event) {
     syllableClickIdx = 0;
     eventQueue.add(new ClearChildrenEvent(0,
                                       querySelector("#replayTargetContainer")));
+    
+    //Start playing the actual video so we can track along...
+    js.context.callMethod('di_play', [tokens[1]]);
+    
     return;
   }
   
@@ -220,6 +224,9 @@ void replayClick(MouseEvent event) {
                                       doReplayUpdate);
   querySelector("#stage3").style.display = "none";
   querySelector("#stage4").style.display = "block";
+  
+  //Yeah, go!
+  js.context.callMethod('di_play', [tokens[1]]);
 }
 
 Queue<ElvizEvent> backupQueue = new Queue<ElvizEvent>();
@@ -255,7 +262,21 @@ void doReplayUpdate(Timer t) {
  * extract the video ID.
  */
 void ytinputChange(Event event) {
+   //XXX: No validation yet, just display button after input changes...
+   querySelector("#tapCuesContainer").style.display = "block";
+   querySelector("#ytplayerContainer").style.display = "block";
+       
    InputElement e = querySelector("#ytinput");
-   print("New text is ${e.value}");
-   js.context.callMethod('di_newYTURL', ["UUXBCdt5IPg"]);
+   String url = e.value;
+   List<String> tokens = url.split(new RegExp(r"\\?v=")); //Lazy but whatever.
+   
+   if (tokens.length != 2) {
+     querySelector("#yterror").innerHtml = "Not a valid YT URL...";
+     return;
+   } else {
+     querySelector("#yterror").innerHtml = "";
+   }
+   
+   //Load the new video by calling the JS method for the YT API.
+   js.context.callMethod('di_newYTURL', [tokens[1]]);
 }
