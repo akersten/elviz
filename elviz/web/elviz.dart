@@ -1,3 +1,9 @@
+
+//XXX: State for certain actions - right now things will break if the syllable
+//button action is triggered before things are actually set up (CSS will prevent
+//this for normal users, but if someone starts poking it it'll break... Suppose
+//that's a layer-8 error though).
+
 import 'dart:html';
 import 'dart:async';
 import 'dart:collection';
@@ -10,7 +16,7 @@ import 'dart:collection';
 abstract class ElvizEvent {
   var showtime = 0;
   
-  ElvisEvent(var showtime) {
+  ElvizEvent(var showtime) {
     this.showtime = showtime;
   }
 }
@@ -23,11 +29,6 @@ class ShowTextEvent extends ElvizEvent {
   }
 }
 
-//XXX: State for certain actions - right now things will break if the syllable
-//button action is triggered before things are actually set up (CSS will prevent
-//this for normal users, but if someone starts poking it it'll break... Suppose
-//that's a layer-8 error though).
-
 /**
  * Set up actions for page elements.
  */
@@ -36,19 +37,20 @@ void main() {
     ..onClick.listen(tapCues);
   querySelector("#syllableButton")
     ..onClick.listen(syllableClick);
+  querySelector("#replayButton")
+    ..onClick.listen(replayClick);
 }
 
 //The way this will work is that we'll start with an array of "tokens". Some
 //of these tokens might be multi-syllable (i.e. have *'s in them), that's ok.
-//We'll use the length of their respective innerTimecues list to track them as
-//we iterate through the symbols and record timecues. After recording each
-//timestamp, the event queue will be built with the ends of words trailed by a
-//space (the event queue will be a used for other things too, but these events
-//will just be "display n-characters" events).
+//We'll parse them out and track how many syllables each token has. Then, during
+//timecue input or rendering we can split the tokens into multi-syllable parts.
 List<String> tokens = [];
-//List<int> timecues = [];
-//List<List<int>> innerTimecues = [];
 List<int> syllableCounts = [];
+
+//Eventually, these tokens get turned into events in this event queue (with
+//corresponding text and appearance times). Multi-syllable words are simply
+//text events without a space at the end, so the next syllable is attached ;)
 Queue<ElvizEvent> eventQueue = new Queue<ElvizEvent>();
 
 void tapCues(MouseEvent event) {
@@ -65,7 +67,8 @@ void tapCues(MouseEvent event) {
   Element ll = querySelector("#lyricsList");
   ll.children = [];
   
-  var tmpi = 0;
+  var i = 0;
+  
   /**
    * Add this item to the lyrics list (for timecue input). We'll also discover
    * here if a word has multiple syllables, and set up the appropriate array
@@ -80,8 +83,6 @@ void tapCues(MouseEvent event) {
     //though, it'll mess with our indexing.
     syllables = token.split(new RegExp(r"\*+"));
     
-    innerTimecues.add(null);
-
     /**
      * Add each syllable to the list element; don't append a dash if we're at
      * the last syllable.
@@ -94,24 +95,17 @@ void tapCues(MouseEvent event) {
     }
     syllables.forEach(LIAdd);
     
-    //If it happened to be a multi-syllable word, then we'll need to set up the
-    //inner-word timecue list.
-    if (syllables.length != 1) {
-      innerTimecues[tmpi] = new List<int>(syllables.length);
-    }
-    
-    tmpi++;
+    syllableCounts.add(j);
+    i++;
   }
-  
-  tokens.add("~fin~"); //Need a final token which isn't multi-syllable.
+  tokens.add("~"); //Need a final token which isn't multi-syllable.
+  syllableCounts.add(1);
   tokens.forEach(addToTheLyricsList);
 
   //Switch over to the second stage interface...
   querySelector("#stage1").style.display = "none";
   querySelector("#stage2").style.display = "block";
 }
-
-
 
 Stopwatch stopwatch = new Stopwatch();
 Timer domUpdateTimer;
@@ -141,21 +135,37 @@ void syllableClick(MouseEvent event) {
     return;
   }
   
-  //Stop the timer after the last syllable happens.
-  if (syllableClickIdx == tokens.length - 1) {
-    stopwatch.stop();
-    
-    //TODO: Build the event chain from the timecues.
+  //Take this item off the displayed list.
+  Element ll = querySelector("#lyricsList");
+  ll.children.removeAt(0);
+ 
+  //Add each syllable of the word as a display text event in the event queue.
+  List<String> syllables = tokens[syllableClickIdx].split(new RegExp(r"\*+"));
+  
+  //If it's a single syllable word, this will just add it to the event queue.
+  //Otherwise it'll add the correct part because of our internal-word indexing. 
+  eventQueue.add(new ShowTextEvent(stopwatch.elapsedMilliseconds,
+                  syllables[syllableClickIdx2]));
+  
+  //Not done with the current word yet?
+  if (syllableClickIdx2 != syllables.length - 1) {
+    //Can't possibly be done (remember, single syllable end token), so increment
+    //and return.
+    syllableClickIdx2 += 1;
     return;
   }
+  syllableClickIdx2 = 0; //Reset for the next multi-syllable word.
   
-  if (innerTimecues[syllableClickIdx] == null) {
-    //Single syllable word.
-    timecues[syllableClickIdx] = 
-    syllableClickIdx++;
-  }else {
-    
+  //Stop the timer after the last syllable happens.
+  if (syllableClickIdx == tokens.length - 1) {
+    querySelector("#syllableButton").setAttribute("disabled", "true");
+    //TODO: Switch to replay view with a share URL and other fun stuff.
+    stopwatch.stop();
   }
   
-  
+  syllableClickIdx++;
+}
+
+
+void replayClick() {
 }
