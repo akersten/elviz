@@ -5,16 +5,17 @@
 <title>Elviz</title>
 
 <script type="application/dart" src="elviz.dart"></script>
+
 <script src="packages/browser/dart.js"></script>
 <script src="packages/browser/interop.js"></script>
 
 <link rel="stylesheet" href="elviz.css">
-
 </head>
 <body>
     <h1>Elviz</h1>
     <p>The lyric visualizer.</p>
-    <div id="stage1">
+    <h2 id="loader" class="centerText">Please wait...</h2>
+    <div id="stage1" style="display:none;">
         <!-- The lyrics input box. -->
         <div class="sample_container high400">
             <textarea
@@ -45,7 +46,7 @@
               // 3. This function creates an <iframe> (and YouTube player)
               //    after the API code downloads.
               var player;
-              var ready = false;
+              var ytready = false;
               function onYouTubeIframeAPIReady() {
                 //It's now ready for us to create new video references via Dart.
                 document.getElementById('ytinput').placeholder = "https://www.youtube.com/watch?v=...";
@@ -60,8 +61,6 @@
                     'onStateChange': onPlayerStateChange
                   }
                 });
-                
-                ready = true;
               }
               
               /**
@@ -80,12 +79,11 @@
                 player.playVideo();
               }
               
-             
               // 4. The API will call this function when the video player is ready.
               function onPlayerReady(event) {
-
+                ytready = true;
               }
-        
+              
               // 5. The API calls this function when the player's state changes.
               //    The function indicates that when playing a video (state=1),
               //    the player should play for six seconds and then stop.
@@ -105,7 +103,7 @@
                */
               function di_bottom() {
                 document.getElementById( 'bottomOfPage' ).scrollIntoView();
-              };
+              }
               
               
             </script>
@@ -136,11 +134,11 @@
     </div>
     <div id="stage3" style="display: none;">
         <div class="sample_container high400 centerText">
-            <a href="#" id="replayButton">Play</a><br />
-            <p>share link:</p>
+            <a href="#" id="replayButton" style="font-size: 3em; line-height: 1em;">(Re)play</a><br />
+            <p>Share link:</p>
             <textarea readonly
                 placeholder="Please wait..."
-                id="shareLink"></textarea>
+                id="shareLink" onclick="this.select();"></textarea>
         </div>
         
     </div>

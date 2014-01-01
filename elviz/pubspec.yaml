@@ -2,3 +2,5 @@ name: elviz
 description: A sample web application
 dependencies:
   browser: any
+  crypto: any
+  utf: any

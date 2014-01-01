@@ -8,7 +8,11 @@ import 'dart:html';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:js' as js;
+import 'dart:convert';
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:utf/utf.dart' as utf;
 
+Element defaultEventContainer = querySelector("#replayTargetContainer");
 /**
  * Events will be used to drive the show. Every event has an appearance time
  * associated with it, and will be triggered when that amount of time has
@@ -22,6 +26,9 @@ abstract class ElvizEvent {
   }
   
   void execute();
+  
+
+  Map toJson();
 }
 
 class ShowTextEvent extends ElvizEvent {
@@ -42,6 +49,10 @@ class ShowTextEvent extends ElvizEvent {
     //Scroll to the bottom of that container too...
     js.context.callMethod('di_bottom', []);
   }
+  
+  Map toJson() {
+    return {"ti": this.showtime, "ty": "st", "tx": this.text};
+  }
 }
 
 class ClearChildrenEvent extends ElvizEvent {
@@ -57,6 +68,13 @@ class ClearChildrenEvent extends ElvizEvent {
   void execute() {
     container.children = [];
   }
+  
+  Map toJson() {
+    /* We will _GUESS_ that the container is the default during reconstruction
+     * to save on link size...
+     */
+    return {"ti": this.showtime, "ty": "cc"};
+  }
 }
 
 /**
@@ -71,6 +89,7 @@ void main() {
   ..onInput.listen(ytinputChange);
   querySelector("#replayButton")
     ..onClick.listen(replayClick);
+  checkForSharesAndAct();
 }
 
 //The way this will work is that we'll start with an array of "tokens". Some
@@ -187,7 +206,7 @@ void syllableClick(MouseEvent event) {
   eventQueue.add(new ShowTextEvent(stopwatch.elapsedMilliseconds,
                   syllables[syllableClickIdx2] +
                   (syllableClickIdx2 == syllables.length - 1 ? " " : ""),
-                  querySelector("#replayTargetContainer")));
+                  defaultEventContainer));
   
   //Not done with the current word yet?
   if (syllableClickIdx2 != syllables.length - 1) {
@@ -204,8 +223,10 @@ void syllableClick(MouseEvent event) {
  
     //Switch to replay view with a share URL and other fun stuff.
     
-    //Generate the share link by serializing (in some manner) the event queue.
-    
+    //Generate the share link by serializing the event queue.
+    TextAreaElement txta = querySelector("#shareLink");
+    txta.value = serializeEventQueue();
+
     querySelector("#stage2").style.display = "none";
     querySelector("#stage3").style.display = "block";
     
@@ -263,6 +284,8 @@ void doReplayUpdate(Timer t) {
   }
 }
 
+String lastVideoID = "";
+
 /**
  * The text has changed in the YT URL input field, see if it's valid and if so
  * extract the video ID.
@@ -283,6 +306,124 @@ void ytinputChange(Event event) {
      querySelector("#yterror").innerHtml = "";
    }
    
+   lastVideoID = tokens[1];
    //Load the new video by calling the JS method for the YT API.
-   js.context.callMethod('di_newYTURL', [tokens[1]]);
+   js.context.callMethod('di_newYTURL', [lastVideoID]);
+}
+
+
+/**
+ * This is for the share links. The way we'll do this is, for each event in the
+ * event queue, 
+ */
+String serializeEventQueue() {
+  String shareLink = lastVideoID + "::";
+  buildShareLink(ElvizEvent) {
+    shareLink += JSON.encode(ElvizEvent) + "::";
+  }
+  eventQueue.forEach(buildShareLink);
+  
+  //The link now looks something like this:
+  //videoID::{"ti":0,"ty":"cc"}::{"ti":1105,"ty":"st","tx":"A "}::{"ti":1460,"ty":"st","tx":"Word"}
+  
+  //base64 it for transmission.
+  return window.location.href + "#_" +
+          crypto.CryptoUtils.bytesToBase64(utf.encodeUtf8(shareLink));
+}
+
+
+/**
+ * We'll have to reconstruct events and put them in the event queue here.
+ */
+void deserializeEventQueueAndPlay(String base64stuff) {
+  //First, de-base64 it.
+  String workingOnIt = utf.decodeUtf8(
+                          crypto.CryptoUtils.base64StringToBytes(base64stuff));
+  
+  //Now split it into tokens - we'll have to push them on to the event queue
+  //as new event objects based on what event type ('ti') they are. Recall the
+  //JSON format:
+  //{"ti":0,"ty":"cc"}::{"ti":1105,"ty":"st","tx":"A "}::{"ti":1460,"ty":"st","tx":"Word"}
+  List<String> eventList = workingOnIt.split(new RegExp(r"::"));
+  if (eventList.last.length == 0) { //Extra due to trailing ::
+    eventList.removeLast();
+  }
+  
+  //Clear the event queue and then populate it with the new events.
+  lastVideoID = eventList.first;
+  eventList.removeAt(0);
+  
+  /* We will _GUESS_ that the container is the default during reconstruction
+   * to save on share link size...
+   */
+  generateEventAndPush(String eventJSON) {
+    ElvizEvent thisEvent;
+    
+    //Depending on the type of event, switch to see which implementing class
+    //needs to be reconstituted into the polymorphic event container.
+    Map decodedMap = JSON.decode(eventJSON);
+    switch(decodedMap["ty"]) {
+      case "cc":
+        thisEvent = new ClearChildrenEvent(decodedMap["ti"], defaultEventContainer);
+        break;
+      case "st":
+        thisEvent = new ShowTextEvent(decodedMap["ti"], decodedMap["tx"], defaultEventContainer);
+        break;
+      default:
+        print("Unknown event type: ${decodedMap['ty']}");
+    }
+    
+    eventQueue.add(thisEvent);
+  }
+  
+  eventList.forEach(generateEventAndPush);
+  
+  //It should be loaded since we'll check the data after the # only once the
+  //callback for YT load has finished.
+  js.context.callMethod('di_newYTURL', [lastVideoID]);
+  
+  //Now, send us to the third screen and be ready to play!
+  querySelector("#stage2").style.display = "none";
+  querySelector("#stage3").style.display = "block";
+  
+  //Hide the share textfield for now... Could just populate it with the URL
+  //though.
+  TextAreaElement txta = querySelector("#shareLink");
+  //txta.value = serializeEventQueue();
+  txta.style.display = "none";
+}
+
+/**
+ * Basically, the problem with everything is it's async. In order to check if
+ * we've got a shared hashtag, we need to wait until the player becomes ready.
+ * We check this by continuing to probe a variable which gets set in JS when the
+ * player is ready, and after that sentinel is true, then check if there's share
+ * hash content.
+ */
+void checkForSharesAndAct() {
+  //Set a timer to keep doing this until it's ready.
+  chkFrShrsTimer =  new Timer.periodic(const Duration(milliseconds: 45),
+                                        chkFrShrsWorker);  
+}
+
+Timer chkFrShrsTimer;
+
+/**
+ * Timer periodical for `checkForSharesAndAct`, see its documentation above.
+ */
+void chkFrShrsWorker(Timer t) {
+  if (js.context['ytready'].toString() == "false") {
+    //Wait...
+  } else {
+    //Ready! Check if the base64 hashtag is what we want...
+    querySelector("#loader").style.display = "none";
+    if (window.location.hash.length > 2 && window.location.hash.substring(1, 2) == "_") {
+      deserializeEventQueueAndPlay(window.location.hash.substring(2));
+    } else {
+      //If not, just make stage1 visible instead...
+      querySelector("#stage1").style.display = "block";
+    }
+    
+    t.cancel();
+  }
 }
