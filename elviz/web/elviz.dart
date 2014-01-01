@@ -420,6 +420,7 @@ void deserializeEventQueueAndPlay(String base64stuff) {
   TextAreaElement txta = querySelector("#shareLink");
   //txta.value = serializeEventQueue();
   txta.style.display = "none";
+  querySelector("#shareLinkAlt").style.display = "none";
 }
 
 /**

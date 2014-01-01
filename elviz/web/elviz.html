@@ -116,6 +116,11 @@
             </div>
             -->
         </div>
+        <div style="opacity: 0.75;">
+        <p>Usage:<br />
+        Words delimited with whitespace or /, inner-word syllables delimited with *.<br />
+        To change color, use a word in the format #123456. 
+        </div>
     </div>
     <div id="stage2" style="display: none;">
         <div class="sample_container high400 centerText">
@@ -136,7 +141,7 @@
     <div id="stage3" style="display: none;">
         <div class="sample_container high400 centerText">
             <a href="#" id="replayButton" style="font-size: 3em; line-height: 1em;">(Re)play</a><br />
-            <p>Share link:</p>
+            <p id="shareLinkAlt">Share link:</p>
             <textarea readonly
                 placeholder="Please wait..."
                 id="shareLink" onclick="this.select();"></textarea>
