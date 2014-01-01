@@ -19,13 +19,24 @@ abstract class ElvizEvent {
   ElvizEvent(var showtime) {
     this.showtime = showtime;
   }
+  
+  void execute();
 }
 
 class ShowTextEvent extends ElvizEvent {
   String text;
+  Element container;  //Where the text shown should be inserted.
   
-  ShowTextEvent(var showtime, String text) : super(showtime) {
+  ShowTextEvent(var showtime, String text, Element container) : super(showtime) {
     this.text = text;
+    this.container = container;
+  }
+  
+  /**
+   * Put this text on-screen.
+   */
+  void execute() {
+    container.children.add(new SpanElement()..text = text);
   }
 }
 
@@ -143,9 +154,12 @@ void syllableClick(MouseEvent event) {
   List<String> syllables = tokens[syllableClickIdx].split(new RegExp(r"\*+"));
   
   //If it's a single syllable word, this will just add it to the event queue.
-  //Otherwise it'll add the correct part because of our internal-word indexing. 
+  //Otherwise it'll add the correct part because of our internal-word indexing.
+  //We want spaces at the end of every word.
   eventQueue.add(new ShowTextEvent(stopwatch.elapsedMilliseconds,
-                  syllables[syllableClickIdx2]));
+                  syllables[syllableClickIdx2] +
+                  (syllableClickIdx2 == syllables.length - 1 ? " " : ""),
+                  querySelector("#replayTargetContainer")));
   
   //Not done with the current word yet?
   if (syllableClickIdx2 != syllables.length - 1) {
@@ -159,13 +173,52 @@ void syllableClick(MouseEvent event) {
   //Stop the timer after the last syllable happens.
   if (syllableClickIdx == tokens.length - 1) {
     querySelector("#syllableButton").setAttribute("disabled", "true");
+ 
     //TODO: Switch to replay view with a share URL and other fun stuff.
+    querySelector("#stage2").style.display = "none";
+    querySelector("#stage3").style.display = "block";
+    
     stopwatch.stop();
   }
   
   syllableClickIdx++;
 }
 
+//Replay section
 
-void replayClick() {
+//Basically, the way replay works is that we have a granularity on a timer; each
+//period, check if the head of the queue is earlier than the elapsed time; if it
+//is, do that event, and continue doing events until the head of the queue is
+//beyond the current time. Adjust the milliseconds here for more accurate event
+//scheduling at the cost of CPU and potentially below browser JS precision.
+Timer replayTimer;
+void replayClick(MouseEvent event) {
+  stopwatch.reset();
+  stopwatch.start();
+  replayTimer =  new Timer.periodic(const Duration(milliseconds: 45),
+                                      doReplayUpdate);
+}
+
+/**
+ * Check for events in the queue which need to be processed. Stop the timers if
+ * the queue is empty.
+ */
+void doReplayUpdate(Timer t) {
+  if (eventQueue.isEmpty) {
+    stopwatch.stop();
+    t.cancel();
+    return;
+  }
+  
+  ElvizEvent nextEvent = eventQueue.first;
+  while (nextEvent.showtime <= stopwatch.elapsedMilliseconds) {
+    eventQueue.removeFirst();
+    
+    nextEvent.execute();
+    
+    if (eventQueue.isEmpty) {
+      break;
+    }
+    nextEvent = eventQueue.first;
+  }
 }
