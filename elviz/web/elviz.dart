@@ -13,6 +13,8 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:utf/utf.dart' as utf;
 
 Element defaultEventContainer = querySelector("#replayTargetContainer");
+String lastColorString = "#FFF";
+
 /**
  * Events will be used to drive the show. Every event has an appearance time
  * associated with it, and will be triggered when that amount of time has
@@ -44,7 +46,10 @@ class ShowTextEvent extends ElvizEvent {
    * Put this text on-screen.
    */
   void execute() {
-    container.children.add(new SpanElement()..text = text);
+    SpanElement el = new SpanElement();
+    el.text = text;
+    el.style.color = lastColorString;
+    container.children.add(el);
     
     //Scroll to the bottom of that container too...
     js.context.callMethod('di_bottom', []);
@@ -69,11 +74,23 @@ class ClearChildrenEvent extends ElvizEvent {
     container.children = [];
   }
   
-  Map toJson() {
-    /* We will _GUESS_ that the container is the default during reconstruction
-     * to save on link size...
-     */
+  Map toJson() {   
     return {"ti": this.showtime, "ty": "cc"};
+  }
+}
+
+class ColorChangeEvent extends ElvizEvent {
+  String colorString;
+  ColorChangeEvent(var showtime, String colorString) : super(showtime) {
+    this.colorString = colorString;
+  }
+  
+  void execute() {
+    lastColorString = this.colorString;
+  }
+  
+  Map toJson() {
+    return {"ti": this.showtime, "ty": "co", "cs": this.colorString};
   }
 }
 
@@ -188,7 +205,7 @@ void syllableClick(MouseEvent event) {
                                       querySelector("#replayTargetContainer")));
     
     //Start playing the actual video so we can track along...
-    js.context.callMethod('di_play', [tokens[1]]);
+    js.context.callMethod('di_play', []);
     
     return;
   }
@@ -199,6 +216,14 @@ void syllableClick(MouseEvent event) {
  
   //Add each syllable of the word as a display text event in the event queue.
   List<String> syllables = tokens[syllableClickIdx].split(new RegExp(r"\*+"));
+  
+
+  //If it's a color change, add a color change event instead.
+  if (syllables[0].startsWith(new RegExp(r"#"))) {
+    eventQueue.add(new ColorChangeEvent(stopwatch.elapsedMilliseconds, syllables[0]));
+    syllableClickIdx += 1;
+    return;
+  }
   
   //If it's a single syllable word, this will just add it to the event queue.
   //Otherwise it'll add the correct part because of our internal-word indexing.
@@ -253,7 +278,7 @@ void replayClick(MouseEvent event) {
   querySelector("#stage4").style.display = "block";
   
   //Yeah, go!
-  js.context.callMethod('di_play', [tokens[1]]);
+  js.context.callMethod('di_play', []);
 }
 
 Queue<ElvizEvent> backupQueue = new Queue<ElvizEvent>();
@@ -272,7 +297,8 @@ void doReplayUpdate(Timer t) {
   }
   
   ElvizEvent nextEvent = eventQueue.first;
-  while (nextEvent.showtime <= stopwatch.elapsedMilliseconds) {
+  //TODO: XXX: Fudge factor of 650ms... Need to sync better...
+  while (nextEvent.showtime <= stopwatch.elapsedMilliseconds + 650) {
     backupQueue.add(eventQueue.removeFirst()); //For re-use.
     
     nextEvent.execute();
@@ -368,6 +394,9 @@ void deserializeEventQueueAndPlay(String base64stuff) {
         break;
       case "st":
         thisEvent = new ShowTextEvent(decodedMap["ti"], decodedMap["tx"], defaultEventContainer);
+        break;
+      case "co":
+        thisEvent = new ColorChangeEvent(decodedMap["ti"], decodedMap["cs"]);
         break;
       default:
         print("Unknown event type: ${decodedMap['ty']}");
