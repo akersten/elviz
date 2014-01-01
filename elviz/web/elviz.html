@@ -99,6 +99,15 @@
               function stopVideo() {
                 player.stopVideo();
               }
+              
+              /**
+               * Scroll to the bottom of the page.
+               */
+              function di_bottom() {
+                document.getElementById( 'bottomOfPage' ).scrollIntoView();
+              };
+              
+              
             </script>
              
             <!--
@@ -127,13 +136,17 @@
     </div>
     <div id="stage3" style="display: none;">
         <div class="sample_container high400 centerText">
-            <a href="#" id="replayButton">Replay</a><br />
-            <p>share link: http://example.com</p>
+            <a href="#" id="replayButton">Play</a><br />
+            <p>share link:</p>
+            <textarea readonly
+                placeholder="Please wait..."
+                id="shareLink"></textarea>
         </div>
         
     </div>
-    <div id="stage4" style="display: none; position: absolute; left: 0px; top: 0px; width: 100%; height: 100%; background-color: black; color: white; overflow: hidden;">
-        <div id="replayTargetContainer" class="bigMonoText"></div>
+    <div id="stage4" style="display: none; position: absolute; left: 0px; top: 0px; height: 100%; width: 100%; background-color: black; color: white;">
+        <div id="replayTargetContainer" class="bigMonoText" style="background-color: black;"></div>
+        <div id="bottomOfPage"><!-- Literal anchor element to scroll into view to find the bottom of the page. --></div>
     </div>
 
 </body>

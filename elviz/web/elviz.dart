@@ -38,6 +38,9 @@ class ShowTextEvent extends ElvizEvent {
    */
   void execute() {
     container.children.add(new SpanElement()..text = text);
+    
+    //Scroll to the bottom of that container too...
+    js.context.callMethod('di_bottom', []);
   }
 }
 
@@ -199,7 +202,10 @@ void syllableClick(MouseEvent event) {
   if (syllableClickIdx == tokens.length - 1) {
     querySelector("#syllableButton").setAttribute("disabled", "true");
  
-    //TODO: Switch to replay view with a share URL and other fun stuff.
+    //Switch to replay view with a share URL and other fun stuff.
+    
+    //Generate the share link by serializing (in some manner) the event queue.
+    
     querySelector("#stage2").style.display = "none";
     querySelector("#stage3").style.display = "block";
     
