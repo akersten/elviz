@@ -7,6 +7,7 @@
 import 'dart:html';
 import 'dart:async';
 import 'dart:collection';
+import 'dart:js' as js;
 
 /**
  * Events will be used to drive the show. Every event has an appearance time
@@ -40,6 +41,21 @@ class ShowTextEvent extends ElvizEvent {
   }
 }
 
+class ClearChildrenEvent extends ElvizEvent {
+  Element container;
+  
+  ClearChildrenEvent(var showtime, Element container): super(showtime) {
+    this.container = container;
+  }
+  
+  /**
+   * Clean up the children of whatever container is referenced.
+   */
+  void execute() {
+    container.children = [];
+  }
+}
+
 /**
  * Set up actions for page elements.
  */
@@ -48,6 +64,8 @@ void main() {
     ..onClick.listen(tapCues);
   querySelector("#syllableButton")
     ..onClick.listen(syllableClick);
+  querySelector("#ytinput")
+  ..onInput.listen(ytinputChange);
   querySelector("#replayButton")
     ..onClick.listen(replayClick);
 }
@@ -137,12 +155,15 @@ var syllableClickIdx2 = 0;
 void syllableClick(MouseEvent event) {
   //XXX: Does mouseClick event also capture spacebar-ing it for every browser?
   
-  //On the first click, start the timer.
+  //On the first click, start the timer, and add a clear-children event to
+  //clean up anything we left behind.
   if (syllableClickIdx == -1) {
     stopwatch.start();
     domUpdateTimer = new Timer.periodic(const Duration(milliseconds: 150),
                                           doDomUpdate);
     syllableClickIdx = 0;
+    eventQueue.add(new ClearChildrenEvent(0,
+                                      querySelector("#replayTargetContainer")));
     return;
   }
   
@@ -197,8 +218,11 @@ void replayClick(MouseEvent event) {
   stopwatch.start();
   replayTimer =  new Timer.periodic(const Duration(milliseconds: 45),
                                       doReplayUpdate);
+  querySelector("#stage3").style.display = "none";
+  querySelector("#stage4").style.display = "block";
 }
 
+Queue<ElvizEvent> backupQueue = new Queue<ElvizEvent>();
 /**
  * Check for events in the queue which need to be processed. Stop the timers if
  * the queue is empty.
@@ -207,12 +231,15 @@ void doReplayUpdate(Timer t) {
   if (eventQueue.isEmpty) {
     stopwatch.stop();
     t.cancel();
+    eventQueue.addAll(backupQueue); //Add them back again.
+    querySelector("#stage4").style.display = "none";
+    querySelector("#stage3").style.display = "block";
     return;
   }
   
   ElvizEvent nextEvent = eventQueue.first;
   while (nextEvent.showtime <= stopwatch.elapsedMilliseconds) {
-    eventQueue.removeFirst();
+    backupQueue.add(eventQueue.removeFirst()); //For re-use.
     
     nextEvent.execute();
     
@@ -221,4 +248,14 @@ void doReplayUpdate(Timer t) {
     }
     nextEvent = eventQueue.first;
   }
+}
+
+/**
+ * The text has changed in the YT URL input field, see if it's valid and if so
+ * extract the video ID.
+ */
+void ytinputChange(Event event) {
+   InputElement e = querySelector("#ytinput");
+   print("New text is ${e.value}");
+   js.context.callMethod('di_newYTURL', ["UUXBCdt5IPg"]);
 }
